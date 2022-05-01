@@ -39,8 +39,33 @@ async function run() {
     app.delete("/item/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      console.log(query);
+
       const result = await bikeCollection.deleteOne(query);
+      res.send(result);
+    });
+    //get oneItem data
+    app.get("/item/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+
+      const result = await bikeCollection.findOne(query);
+      res.send(result);
+    });
+
+    //update
+    app.put("/item/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateQuantity = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          quantity: updateQuantity.quantity,
+        },
+      };
+      console.log(updateDoc);
+      const result = await bikeCollection.updateOne(filter, updateDoc, options);
+      console.log(result);
       res.send(result);
     });
   } finally {
