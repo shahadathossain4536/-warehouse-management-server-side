@@ -4,6 +4,9 @@ const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+
+app.use(express.json());
+app.use(cors());
 //shahadat
 //FNxprarHn96jjd2G
 
@@ -68,6 +71,23 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+    // one item delivered
+    app.put("/item/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const deliveredQuantity = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          quantity: deliveredQuantity.oneItemDelivered,
+        },
+      };
+      console.log(updateDoc);
+      const result = await bikeCollection.updateOne(filter, updateDoc, options);
+      console.log(result);
+    });
   } finally {
   }
 }
@@ -78,9 +98,6 @@ run().catch(console.dir);
 //   // perform actions on the collection object
 //   client.close();
 // });
-
-app.use(express.json());
-app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
