@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 app.use(express.json());
@@ -22,6 +23,15 @@ async function run() {
     await client.connect();
     const bikeCollection = client.db("bike").collection("machine");
 
+    // json token
+    app.post("/login", (req, res) => {
+      const email = req.body;
+
+      const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
+      console.log(token);
+      res.send({ token });
+    });
+
     //get
     app.get("/items", async (req, res) => {
       const query = req.params;
@@ -34,8 +44,20 @@ async function run() {
     //post
     app.post("/item", async (req, res) => {
       const bike = req.body;
-      const result = await bikeCollection.insertOne(bike);
-      res.send(result);
+      const tokenInfo = req.headers.authorization;
+
+      const [email, accessToken] = tokenInfo.split(" ");
+      const decoded = verifyToken(accessToken);
+      console.log("de jwt", decoded);
+      console.log(decoded, decoded.email);
+      if (email === decoded.email) {
+        const result = await bikeCollection.insertOne(bike);
+        res.send(result);
+      } else {
+        res.send({ success: "UnAuthorized Access" });
+      }
+      // const result = await bikeCollection.insertOne(bike);
+      // res.send(result);
     });
 
     //delete
@@ -66,7 +88,6 @@ async function run() {
           quantity: updateQuantity.quantity,
         },
       };
-      console.log(updateDoc);
       const result = await bikeCollection.updateOne(filter, updateDoc, options);
       console.log(result);
       res.send(result);
@@ -75,7 +96,6 @@ async function run() {
     // one item delivered
     app.put("/item/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const deliveredQuantity = req.body;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -84,7 +104,6 @@ async function run() {
           quantity: deliveredQuantity.oneItemDelivered,
         },
       };
-      console.log(updateDoc);
       const result = await bikeCollection.updateOne(filter, updateDoc, options);
       console.log(result);
     });
@@ -106,3 +125,17 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+function verifyToken(token) {
+  let email;
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      email = "Invalid email";
+    }
+    if (decoded) {
+      console.log(decoded);
+      email = decoded;
+    }
+  });
+  return email;
+}
