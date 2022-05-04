@@ -22,6 +22,7 @@ async function run() {
   try {
     await client.connect();
     const bikeCollection = client.db("bike").collection("machine");
+    const userCollection = client.db("users").collection("user");
 
     // json token
     app.post("/login", (req, res) => {
@@ -35,6 +36,18 @@ async function run() {
     //get
     app.get("/items", async (req, res) => {
       const query = req.params;
+
+      const cursor = bikeCollection.find(query);
+      const result = await cursor.toArray();
+
+      res.send(result);
+    });
+
+    //get myItem
+    app.get("/myitem", async (req, res) => {
+      const email = req.query.email;
+
+      const query = { email: email };
       const cursor = bikeCollection.find(query);
       const result = await cursor.toArray();
 
@@ -48,16 +61,13 @@ async function run() {
 
       const [email, accessToken] = tokenInfo.split(" ");
       const decoded = verifyToken(accessToken);
-      console.log("de jwt", decoded);
-      console.log(decoded, decoded.email);
+
       if (email === decoded.email) {
         const result = await bikeCollection.insertOne(bike);
         res.send(result);
       } else {
         res.send({ success: "UnAuthorized Access" });
       }
-      // const result = await bikeCollection.insertOne(bike);
-      // res.send(result);
     });
 
     //delete
@@ -81,6 +91,7 @@ async function run() {
     app.put("/item/:id", async (req, res) => {
       const id = req.params.id;
       const updateQuantity = req.body;
+
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
@@ -89,23 +100,34 @@ async function run() {
         },
       };
       const result = await bikeCollection.updateOne(filter, updateDoc, options);
-      console.log(result);
+
       res.send(result);
     });
 
     // one item delivered
-    app.put("/item/:id", async (req, res) => {
+    app.patch("/item/:id", async (req, res) => {
       const id = req.params.id;
       const deliveredQuantity = req.body;
+      console.log(deliveredQuantity);
       const filter = { _id: ObjectId(id) };
+      console.log("filter", filter);
       const options = { upsert: true };
       const updateDoc = {
         $set: {
-          quantity: deliveredQuantity.oneItemDelivered,
+          quantity: deliveredQuantity.deliveredQuantity,
         },
       };
+      console.log(updateDoc);
       const result = await bikeCollection.updateOne(filter, updateDoc, options);
       console.log(result);
+      res.send(result);
+    });
+
+    // user data add server
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
+      res.send(result);
     });
   } finally {
   }
@@ -133,7 +155,6 @@ function verifyToken(token) {
       email = "Invalid email";
     }
     if (decoded) {
-      console.log(decoded);
       email = decoded;
     }
   });
