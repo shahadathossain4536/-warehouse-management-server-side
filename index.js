@@ -23,6 +23,7 @@ async function run() {
     await client.connect();
     const bikeCollection = client.db("bike").collection("machine");
     const userCollection = client.db("users").collection("user");
+    const showroomCollection = client.db("showrooms").collection("showroom");
 
     // json token
     app.post("/login", (req, res) => {
@@ -127,6 +128,22 @@ async function run() {
     app.post("/users", async (req, res) => {
       const user = req.body;
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // showroom post api
+    app.post("/showrooms", async (req, res) => {
+      const showroom = req.body;
+      const result = await showroomCollection.insertOne(showroom);
+      res.send(result);
+    });
+
+    // showroom
+    app.get("/showroom", async (req, res) => {
+      const query = req.query;
+      const cursor = showroomCollection.find(query);
+      const result = await cursor.toArray();
+
       res.send(result);
     });
   } finally {
